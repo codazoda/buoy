@@ -1,16 +1,22 @@
 package main
 
 import (
+	"bufio"
 	_ "embed"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 //go:embed assets/index.html
 var defaultIndex []byte
+
+//go:embed assets/com.joeldare.buoy.plist
+var launchdPlistTemplate string
 
 func main() {
 	port := getServerPort()
@@ -23,6 +29,16 @@ func main() {
 	if err := ensureIndexFile(wwwDir); err != nil {
 		fmt.Printf("Could not initialize index.html: %v\n", err)
 		os.Exit(1)
+	}
+
+	if os.Getenv("BUOY_LAUNCHD") == "" {
+		if promptAutoStart() {
+			if err := installLaunchd(); err != nil {
+				fmt.Printf("Failed to install launchd service: %v\n", err)
+			} else {
+				fmt.Println("Configured launchd to start Buoy automatically.")
+			}
+		}
 	}
 
 	fileServer := http.FileServer(http.Dir(wwwDir))
@@ -74,4 +90,48 @@ func ensureIndexFile(wwwDir string) error {
 	}
 
 	return os.WriteFile(indexPath, defaultIndex, 0o644)
+}
+
+func promptAutoStart() bool {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Would you like Buoy to start automatically? [Y/n]: ")
+	response, _ := reader.ReadString('\n')
+	response = strings.TrimSpace(response)
+	return response == "" || strings.EqualFold(response, "y") || strings.EqualFold(response, "yes")
+}
+
+func installLaunchd() error {
+	execPath, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	execPath, err = filepath.EvalSymlinks(execPath)
+	if err != nil {
+		return err
+	}
+
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	plistDir := filepath.Join(userHome, "Library", "LaunchAgents")
+	if err := os.MkdirAll(plistDir, 0o755); err != nil {
+		return err
+	}
+
+	plistPath := filepath.Join(plistDir, "com.joeldare.buoy.plist")
+	plistContent := []byte(strings.ReplaceAll(launchdPlistTemplate, "{{EXEC_PATH}}", execPath))
+
+	if err := os.WriteFile(plistPath, plistContent, 0o644); err != nil {
+		return err
+	}
+
+	// Attempt to load immediately; if it fails, leave the plist in place.
+	cmd := exec.Command("launchctl", "load", plistPath)
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("launchctl load failed (you may need to load manually): %v\n", err)
+	}
+
+	return nil
 }
