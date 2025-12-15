@@ -10,8 +10,7 @@
 	</array>
 	<key>EnvironmentVariables</key>
 	<dict>
-		<key>BUOY_LAUNCHD</key>
-		<string>1</string>
+{{ENV_VARS}}
 	</dict>
 	<key>RunAtLoad</key>
 	<true/>

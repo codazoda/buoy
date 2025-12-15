@@ -33,10 +33,15 @@ func main() {
 
 	if os.Getenv("BUOY_LAUNCHD") == "" {
 		if promptAutoStart() {
-			if err := installLaunchd(); err != nil {
+			if err := installLaunchd(port); err != nil {
 				fmt.Printf("Failed to install launchd service: %v\n", err)
 			} else {
-				fmt.Println("Configured launchd to start Buoy automatically.")
+				if err := startLaunchdService(); err != nil {
+					fmt.Printf("Configured launchd, but failed to start Buoy via launchd: %v\n", err)
+				} else {
+					fmt.Printf("Buoy is now managed by launchd and running in the background.\nServing %s on port %s\n", wwwDir, port)
+					return
+				}
 			}
 		}
 	}
@@ -100,12 +105,16 @@ func promptAutoStart() bool {
 	return response == "" || strings.EqualFold(response, "y") || strings.EqualFold(response, "yes")
 }
 
-func installLaunchd() error {
+func installLaunchd(port string) error {
 	execPath, err := os.Executable()
 	if err != nil {
 		return err
 	}
 	execPath, err = filepath.EvalSymlinks(execPath)
+	if err != nil {
+		return err
+	}
+	execPath, err = ensurePersistentBinary(execPath)
 	if err != nil {
 		return err
 	}
@@ -121,17 +130,79 @@ func installLaunchd() error {
 	}
 
 	plistPath := filepath.Join(plistDir, "com.joeldare.buoy.plist")
-	plistContent := []byte(strings.ReplaceAll(launchdPlistTemplate, "{{EXEC_PATH}}", execPath))
 
-	if err := os.WriteFile(plistPath, plistContent, 0o644); err != nil {
+	envVars := buildLaunchdEnv(port)
+	plistContent := strings.ReplaceAll(launchdPlistTemplate, "{{EXEC_PATH}}", execPath)
+	plistContent = strings.ReplaceAll(plistContent, "{{ENV_VARS}}", envVars)
+
+	if err := os.WriteFile(plistPath, []byte(plistContent), 0o644); err != nil {
 		return err
 	}
 
-	// Attempt to load immediately; if it fails, leave the plist in place.
-	cmd := exec.Command("launchctl", "load", plistPath)
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("launchctl load failed (you may need to load manually): %v\n", err)
+	domain := fmt.Sprintf("gui/%d", os.Getuid())
+
+	// Remove any existing instance, ignore errors (likely not present).
+	_ = exec.Command("launchctl", "bootout", domain+"/com.joeldare.buoy").Run()
+
+	// Bootstrap the agent into the user domain.
+	if err := exec.Command("launchctl", "bootstrap", domain, plistPath).Run(); err != nil {
+		return fmt.Errorf("launchctl bootstrap failed: %w", err)
+	}
+
+	// Ensure it is enabled on login.
+	if err := exec.Command("launchctl", "enable", domain+"/com.joeldare.buoy").Run(); err != nil {
+		fmt.Printf("launchctl enable failed (service may still run): %v\n", err)
 	}
 
 	return nil
+}
+
+func startLaunchdService() error {
+	domain := fmt.Sprintf("gui/%d", os.Getuid())
+	cmd := exec.Command("launchctl", "kickstart", "-k", domain+"/com.joeldare.buoy")
+	return cmd.Run()
+}
+
+func buildLaunchdEnv(port string) string {
+	var b strings.Builder
+	b.WriteString("\t\t<key>BUOY_LAUNCHD</key>\n\t\t<string>1</string>\n")
+	if port != "" {
+		b.WriteString(fmt.Sprintf("\t\t<key>PORT</key>\n\t\t<string>%s</string>\n", port))
+	}
+	if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
+		b.WriteString(fmt.Sprintf("\t\t<key>XDG_DATA_HOME</key>\n\t\t<string>%s</string>\n", xdg))
+	}
+	return b.String()
+}
+
+func ensurePersistentBinary(execPath string) (string, error) {
+	if strings.Contains(execPath, string(filepath.Separator)+"go-build"+string(filepath.Separator)) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return "", err
+		}
+
+		userHome, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+
+		targetDir := filepath.Join(userHome, ".local", "bin")
+		if err := os.MkdirAll(targetDir, 0o755); err != nil {
+			return "", err
+		}
+
+		target := filepath.Join(targetDir, "buoy")
+		cmd := exec.Command("go", "build", "-o", target, ".")
+		cmd.Dir = cwd
+		cmd.Env = os.Environ()
+
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return "", fmt.Errorf("go build failed: %v: %s", err, string(out))
+		}
+
+		return target, nil
+	}
+
+	return execPath, nil
 }
