@@ -67,7 +67,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 func getServerPort() string {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "42869"
 	}
 	return port
 }
