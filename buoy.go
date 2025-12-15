@@ -197,7 +197,7 @@ func ensurePersistentBinary(execPath string) (string, error) {
 			return "", err
 		}
 
-		target := filepath.Join(targetDir, "buoy")
+		target := filepath.Join(targetDir, "Buoy")
 		cmd := exec.Command("go", "build", "-o", target, ".")
 		cmd.Dir = cwd
 		cmd.Env = os.Environ()
