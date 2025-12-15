@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>com.joeldare.buoy</string>
+	<string>{{LABEL}}</string>
 	<key>ProgramArguments</key>
 	<array>
 		<string>{{EXEC_PATH}}</string>

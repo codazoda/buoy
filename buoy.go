@@ -18,6 +18,10 @@ var defaultIndex []byte
 //go:embed assets/com.joeldare.buoy.plist
 var launchdPlistTemplate string
 
+const (
+	launchdLabel = "com.joeldare.Buoy"
+)
+
 func main() {
 	port := getServerPort()
 	wwwDir, err := getWWWDir()
@@ -134,6 +138,7 @@ func installLaunchd(port string) error {
 	envVars := buildLaunchdEnv(port)
 	plistContent := strings.ReplaceAll(launchdPlistTemplate, "{{EXEC_PATH}}", execPath)
 	plistContent = strings.ReplaceAll(plistContent, "{{ENV_VARS}}", envVars)
+	plistContent = strings.ReplaceAll(plistContent, "{{LABEL}}", launchdLabel)
 
 	if err := os.WriteFile(plistPath, []byte(plistContent), 0o644); err != nil {
 		return err
@@ -142,7 +147,7 @@ func installLaunchd(port string) error {
 	domain := fmt.Sprintf("gui/%d", os.Getuid())
 
 	// Remove any existing instance, ignore errors (likely not present).
-	_ = exec.Command("launchctl", "bootout", domain+"/com.joeldare.buoy").Run()
+	_ = exec.Command("launchctl", "bootout", domain+"/"+launchdLabel).Run()
 
 	// Bootstrap the agent into the user domain.
 	if err := exec.Command("launchctl", "bootstrap", domain, plistPath).Run(); err != nil {
@@ -150,7 +155,7 @@ func installLaunchd(port string) error {
 	}
 
 	// Ensure it is enabled on login.
-	if err := exec.Command("launchctl", "enable", domain+"/com.joeldare.buoy").Run(); err != nil {
+	if err := exec.Command("launchctl", "enable", domain+"/"+launchdLabel).Run(); err != nil {
 		fmt.Printf("launchctl enable failed (service may still run): %v\n", err)
 	}
 
@@ -159,7 +164,7 @@ func installLaunchd(port string) error {
 
 func startLaunchdService() error {
 	domain := fmt.Sprintf("gui/%d", os.Getuid())
-	cmd := exec.Command("launchctl", "kickstart", "-k", domain+"/com.joeldare.buoy")
+	cmd := exec.Command("launchctl", "kickstart", "-k", domain+"/"+launchdLabel)
 	return cmd.Run()
 }
 
