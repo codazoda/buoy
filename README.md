@@ -1,6 +1,6 @@
 # Buoy
 
-A static file server for developers on MacOS.
+A static file server for web developers on MacOS.
 
 - Minimal
 - Starts automatically through launchd
@@ -8,15 +8,11 @@ A static file server for developers on MacOS.
 
 ## Getting Started
 
-### Install
-
-One-liner (downloads a prebuilt macOS binary when available):
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/codazoda/buoy/main/scripts/install.sh | bash
+```
+go install joeldare.com/buoy@latest
 ```
 
-The installer places the `Buoy` binary in `~/.local/bin` and clears the macOS quarantine attribute so it runs without prompts.
+The installer places the _Buoy_ binary at `~/.local/bin/buoy`.
 
 ### Serve files from another directory via symlink
 
