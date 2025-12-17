@@ -37,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if os.Getenv("BUOY_LAUNCHD") == "" {
+	if os.Getenv("BUOY_LAUNCHD") == "" && !runningFromGoRun() {
 		if promptAutoStart() {
 			installPort := chooseInstallPort(port)
 			if err := installLaunchd(installPort); err != nil {
@@ -238,4 +238,36 @@ func chooseInstallPort(current string) string {
 		return defaultPort
 	}
 	return current
+}
+
+func runningFromGoRun() bool {
+	execPath, err := os.Executable()
+	if err != nil {
+		return false
+	}
+	execPath, err = filepath.EvalSymlinks(filepath.Clean(execPath))
+	if err != nil {
+		return false
+	}
+
+	// go-run artifacts live under the go-build cache, either in the temp dir or GOCACHE (~Library/Caches/go-build on macOS).
+	if cache := os.Getenv("GOCACHE"); cache != "" && strings.HasPrefix(execPath, filepath.Clean(cache)+string(os.PathSeparator)) {
+		return true
+	}
+
+	userCache, _ := os.UserCacheDir()
+	candidateCacheDirs := []string{
+		filepath.Join(userCache, "go-build"),
+		filepath.Join(os.TempDir(), "go-build"),
+		"/private" + filepath.Join(os.TempDir(), "go-build"), // macOS temp paths sometimes include /private prefix
+	}
+
+	for _, dir := range candidateCacheDirs {
+		dir = filepath.Clean(dir) + string(os.PathSeparator)
+		if dir != string(os.PathSeparator) && strings.HasPrefix(execPath, dir) {
+			return true
+		}
+	}
+
+	return strings.Contains(execPath, string(os.PathSeparator)+"go-build")
 }
