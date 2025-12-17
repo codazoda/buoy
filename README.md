@@ -1,6 +1,6 @@
 # Buoy
 
-A static file server for web developers on MacOS.
+A static file server for web developers on macOS. Open source and distributed under the MIT license.
 
 - Minimal
 - Starts automatically through launchd
@@ -15,13 +15,13 @@ A static file server for web developers on MacOS.
 
 ### Installation
 
-Install the Buoy.
+Install Buoy:
 
 ```
 go install github.com/codazoda/buoy@latest
 ```
 
-The installer places the _Buoy_ binary at `~/.local/bin/buoy`. Run it with the following command. It will offer to install it via LaunchD.
+The installer places the _Buoy_ binary at `~/.local/bin/buoy`. Run it with the following command. It will offer to install it via launchd.
 
 ```
 buoy
@@ -50,3 +50,10 @@ go run buoy.go -uninstall
 ```
 
 To also clear settings and content, delete `~/.local/share/buoy`.
+
+
+## Acknowledgements
+
+Created by Joel Dare
+
+Copyright (c) Dare Companies Dotcom LLC
