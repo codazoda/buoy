@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	_ "embed"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,6 +26,19 @@ const (
 )
 
 func main() {
+	uninstall := flag.Bool("uninstall", false, "Remove Buoy launchd service and installed binary")
+	flag.Parse()
+
+	if *uninstall {
+		if err := uninstallBuoy(); err != nil {
+			fmt.Printf("Uninstall failed: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("Buoy launchd service and binary removed.")
+		fmt.Println("To delete settings and content, remove ~/.local/share/buoy")
+		return
+	}
+
 	port := getServerPort()
 	wwwDir, err := getWWWDir()
 	if err != nil {
@@ -238,6 +252,33 @@ func chooseInstallPort(current string) string {
 		return defaultPort
 	}
 	return current
+}
+
+func uninstallBuoy() error {
+	userHome, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	domain := fmt.Sprintf("gui/%d", os.Getuid())
+	_ = exec.Command("launchctl", "bootout", domain+"/"+launchdLabel).Run()
+	_ = exec.Command("launchctl", "bootout", domain+"/"+legacyLaunchdLabel).Run()
+
+	plistDir := filepath.Join(userHome, "Library", "LaunchAgents")
+	plistPaths := []string{
+		filepath.Join(plistDir, "com.joeldare.buoy.plist"),
+		filepath.Join(plistDir, "com.joeldare.Buoy.plist"),
+	}
+	for _, plist := range plistPaths {
+		_ = os.Remove(plist)
+	}
+
+	binPath := filepath.Join(userHome, ".local", "bin", "Buoy")
+	if err := os.Remove(binPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove binary: %w", err)
+	}
+
+	return nil
 }
 
 func runningFromGoRun() bool {
