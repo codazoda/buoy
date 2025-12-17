@@ -15,11 +15,19 @@ A static file server for web developers on MacOS.
 
 ### Installation
 
+Install the Buoy.
+
 ```
 go install github.com/codazoda/buoy@latest
 ```
 
-The installer places the _Buoy_ binary at `~/.local/bin/buoy`.
+The installer places the _Buoy_ binary at `~/.local/bin/buoy`. Run it with the following command. It will offer to install it via LaunchD.
+
+```
+buoy
+```
+
+Point your web browser at [http://localhost:42869](http://localhost:42869/).
 
 ### Serve files from another directory via symlink
 
