@@ -16,7 +16,7 @@ A static file server for web developers on MacOS.
 ### Installation
 
 ```
-go install joeldare.com/buoy@latest
+go install github.com/codazoda/buoy@latest
 ```
 
 The installer places the _Buoy_ binary at `~/.local/bin/buoy`.
