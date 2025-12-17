@@ -4,9 +4,16 @@ A static file server for web developers on MacOS.
 
 - Minimal
 - Starts automatically through launchd
-- Static file server
+
 
 ## Getting Started
+
+### Prerequisites
+
+- macOS (uses launchd for auto-start)
+- Go toolchain installed (`go` in PATH)
+
+### Installation
 
 ```
 go install joeldare.com/buoy@latest
