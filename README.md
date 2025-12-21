@@ -1,8 +1,6 @@
 # Buoy
 
-A static file server for web developers on macOS. Open source and distributed under the MIT license.
-
-- Minimal
+An always-on static file server for web developers on macOS. See https://buoy.joelryan.com.
 
 
 ## Getting Started
