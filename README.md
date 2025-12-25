@@ -1,6 +1,6 @@
 # Buoy
 
-An always-on static file server for web developers on macOS. See https://buoy.joelryan.com.
+A minimal always-on static file server for web developers on macOS. See https://buoy.joelryan.com.
 
 The Buoy server is free and open source.
 
