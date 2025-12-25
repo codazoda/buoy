@@ -1,7 +1,5 @@
 # Buoy
 
-![Buoy Logo](https://buoy.joelryan.com/image/buoy.svg)
-
 An always-on static file server for web developers on macOS. See https://buoy.joelryan.com.
 
 
